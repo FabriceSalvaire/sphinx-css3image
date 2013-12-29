@@ -32,6 +32,17 @@ class Css3Image(nodes.image):
 
 ####################################################################################################
 
+def degree(argument):
+    match = re.match(r'^(-?)([0-9.]+) *(|deg)$', argument)
+    try:
+        assert match is not None
+        float(match.group(2))
+    except (AssertionError, ValueError):
+        raise ValueError('Value must be in degree')
+    return match.group(1) + match.group(2) + match.group(3)
+
+####################################################################################################
+
 class Css3ImageDirective(Directive):
 
     """ This class defines a ``css3image`` directive.
@@ -63,6 +74,13 @@ class Css3ImageDirective(Directive):
                    'name': directives.unchanged,
                    'target': directives.unchanged_required,
                    'class': directives.class_option,
+                   'rotate': degree,
+                   'translationX': directives.length_or_unitless,
+                   'translationY': directives.length_or_unitless,
+                   'margin-left': directives.length_or_unitless,
+                   'margin-right': directives.length_or_unitless,
+                   'margin-bottom': directives.length_or_unitless,
+                   'margin-top': directives.length_or_unitless,
                    }
 
     ##############################################
@@ -215,6 +233,19 @@ def visit_Css3Image_html(self, node):
                 atts[att_name] += 'px'
             style.append('%s: %s;' % (att_name, atts[att_name]))
             del atts[att_name]
+    transform = []
+    for att_name in 'rotate', 'translationX', 'translationY':
+        if att_name in node:
+            transform.append('{}({})'.format(att_name, node[att_name]))
+    if transform:
+        style.append('transform: ' + ' '.join(transform) + ';')
+    for att_name in ('margin-left', 'margin-right', 'margin.bottom', 'margin-top'):
+        if att_name in node:
+            value = node[att_name]
+            if re.match(r'^[0-9.]+$', value):
+                # Interpret unitless values as pixels.
+                value += 'px'
+            style.append('%s: %s;' % (att_name, value))
     if style:
         atts['style'] = ' '.join(style)
     if (isinstance(node.parent, nodes.TextElement) or
