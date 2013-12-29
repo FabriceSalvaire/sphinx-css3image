@@ -33,6 +33,14 @@ class Css3Image(nodes.image):
 ####################################################################################################
 
 def degree(argument):
+    """
+    Check for a degree argument and return a normalized string of the form "<value>deg" (without
+    space in between).
+
+    To be called from directive option conversion functions.
+
+    cf. ``/usr/lib/python2.7/site-packages/docutils/parsers/rst/directives/__init__.py``
+    """
     match = re.match(r'^(-?)([0-9.]+) *(|deg)$', argument)
     try:
         assert match is not None
@@ -46,6 +54,8 @@ def degree(argument):
 class Css3ImageDirective(Directive):
 
     """ This class defines a ``css3image`` directive.
+
+    Should be derived from Image.
 
     cf. ``/usr/lib/python2.7/site-packages/docutils/parsers/rst/directives/images.py``
     """
@@ -74,6 +84,7 @@ class Css3ImageDirective(Directive):
                    'name': directives.unchanged,
                    'target': directives.unchanged_required,
                    'class': directives.class_option,
+                   # css3image: Added some options
                    'rotate': degree,
                    'translationX': directives.length_or_unitless,
                    'translationY': directives.length_or_unitless,
@@ -123,8 +134,8 @@ class Css3ImageDirective(Directive):
             del self.options['target']
 
         set_classes(self.options)
+        # css3image: customise Class
         image_node = Css3Image(self.block_text, **self.options)
-        # image_node = nodes.image(self.block_text, **self.options)
         self.add_name(image_node)
 
         if reference_node:
@@ -142,24 +153,24 @@ def visit_Css3Image_html(self, node):
     cf. ``/usr/lib/python2.7/site-packages/sphinx/writers/html.py``
     """
 
-    print 'css3image.visit_Css3Image_html'
+    # print 'css3image.visit_Css3Image_html'
 
     olduri = node['uri']
     # rewrite the URI if the environment knows about it
     if olduri in self.builder.images:
         node['uri'] = posixpath.join(self.builder.imgpath, self.builder.images[olduri])
-    print self.builder.imgpath, node['uri']
 
-    if (node['uri'].lower().endswith('svg') or
-        node['uri'].lower().endswith('svgz')):
-        atts = {'src': node['uri']}
-        if node.has_key('width'):
+    uri = node['uri']
+    ext = os.path.splitext(uri)[1].lower()
+    if ext in ('.svg', '.svgz'):
+        atts = {'src': uri}
+        if 'width' in node:
             atts['width'] = node['width']
-        if node.has_key('height'):
+        if 'height' in node:
             atts['height'] = node['height']
-        if node.has_key('alt'):
+        if 'alt' in node:
             atts['alt'] = node['alt']
-        if node.has_key('align'):
+        if 'align' in node:
             self.body.append('<div align="%s" class="align-%s">' % (node['align'], node['align']))
             self.context.append('</div>\n')
         else:
@@ -167,7 +178,7 @@ def visit_Css3Image_html(self, node):
         self.body.append(self.emptytag(node, 'img', '', **atts))
         return
 
-    if node.has_key('scale'):
+    if 'scale' in node:
         # Try to figure out image height and width.  Docutils does that too,
         # but it tries the final file name, which does not necessarily exist
         # yet at the time the HTML file is written.
@@ -178,9 +189,9 @@ def visit_Css3Image_html(self, node):
                     UnicodeError): # PIL doesn't like Unicode paths.
                 pass
             else:
-                if not node.has_key('width'):
+                if 'width' not in node:
                     node['width'] = str(image.size[0])
-                if not node.has_key('height'):
+                if 'height' not in node:
                     node['height'] = str(image.size[1])
                 del image
 
@@ -199,6 +210,7 @@ def visit_Css3Image_html(self, node):
     else:
         atts['src'] = uri
         atts['alt'] = node.get('alt', uri)
+
     # image size
     if 'width' in node:
         atts['width'] = node['width']
@@ -225,14 +237,18 @@ def visit_Css3Image_html(self, node):
                 assert match
                 atts[att_name] = '%s%s' % (float(match.group(1)) * (float(node['scale']) / 100),
                                            match.group(2))
+
     style = []
     for att_name in 'width', 'height':
         if att_name in atts:
-            if re.match(r'^[0-9.]+$', atts[att_name]):
+            value = atts[att_name]
+            if re.match(r'^[0-9.]+$', value):
                 # Interpret unitless values as pixels.
-                atts[att_name] += 'px'
-            style.append('%s: %s;' % (att_name, atts[att_name]))
+                value += 'px'
+            style.append('%s: %s;' % (att_name, value))
             del atts[att_name]
+
+    # css3image: Added some styles
     transform = []
     for att_name in 'rotate', 'translationX', 'translationY':
         if att_name in node:
@@ -246,6 +262,7 @@ def visit_Css3Image_html(self, node):
                 # Interpret unitless values as pixels.
                 value += 'px'
             style.append('%s: %s;' % (att_name, value))
+
     if style:
         atts['style'] = ' '.join(style)
     if (isinstance(node.parent, nodes.TextElement) or
@@ -268,7 +285,7 @@ def visit_Css3Image_html(self, node):
 ####################################################################################################
 
 def depart_Css3Image_html(self, node):
-    print 'css3image.depart_Css3Image_html'
+    # print 'css3image.depart_Css3Image_html'
     self.body.append(self.context.pop())
 
 ####################################################################################################
@@ -287,7 +304,7 @@ def depart_Css3Image_text(self, node):
 
 def setup(app):
 
-    print 'Load css3image'
+    # print 'Load css3image'
     
     app.add_node(Css3Image,
                  html=(visit_Css3Image_html, depart_Css3Image_html),
