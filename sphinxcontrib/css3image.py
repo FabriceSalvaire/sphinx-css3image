@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-""" Enhanced ``image`` directive for Sphinx Documentation Generator. """
+""" This plugin provides an enhanced ``image`` directive with additional CSS properties for Sphinx
+Documentation Generator.
+
+The code is mainly a copy of the one for the original ``image`` directive, since there is no other
+way to do.
+"""
 
 ####################################################################################################
 
@@ -32,9 +37,10 @@ class Css3Image(nodes.image):
 
 ####################################################################################################
 
+# Fixme: design a better option validation API
+
 def degree(argument):
-    """
-    Check for a degree argument and return a normalized string of the form "<value>deg" (without
+    """ Check for a degree argument and return a normalized string of the form "<value>deg" (without
     space in between).
 
     To be called from directive option conversion functions.
@@ -48,6 +54,44 @@ def degree(argument):
     except (AssertionError, ValueError):
         raise ValueError('Value must be in degree')
     return match.group(1) + match.group(2) + match.group(3)
+
+####################################################################################################
+
+def one_length(argument):
+    return directives.get_measure(argument, directives.length_units)
+
+####################################################################################################
+
+def list_of_lengths(argument, length_max, separator=' '):
+    if ',' in argument:
+        entries = argument.split(',')
+    else:
+        entries = argument.split()
+    entries = [one_length(x) for x in entries]
+    if len(entries) > length_max:
+        raise ValueError("Value must be a list of one to {} length"
+                         " separated by spaces or commas".format(length_max))
+    return separator.join(entries)
+
+####################################################################################################
+
+def two_lengths(argument):
+    return list_of_lengths(argument, length_max=2)
+
+def three_lengths(argument):
+    return list_of_lengths(argument, length_max=3)
+
+def four_lengths(argument):
+    return list_of_lengths(argument, length_max=4)
+
+def two_lengths_comma(argument):
+    return list_of_lengths(argument, length_max=2, separator=',')
+
+def three_lengths_comma(argument):
+    return list_of_lengths(argument, length_max=3, separator=',')
+
+def four_lengths_comma(argument):
+    return list_of_lengths(argument, length_max=4, separator=',')
 
 ####################################################################################################
 
@@ -85,13 +129,22 @@ class Css3ImageDirective(Directive):
                    'target': directives.unchanged_required,
                    'class': directives.class_option,
                    # css3image: Added some options
+                   'margin': four_lengths,
+                   'margin-left': one_length,
+                   'margin-right': one_length,
+                   'margin-bottom': one_length,
+                   'margin-top': one_length,
+                   'border-radius': one_length,
+                   'transform-origin': three_lengths,
+                   'translate': two_lengths_comma,
+                   'translatex': one_length, # options are converted to lower case!
+                   'translatey': one_length,
+                   # 'scale': directives.unchanged,
+                   'scalex': directives.unchanged, # float 1.0 and not 1.
+                   'scaley': directives.unchanged,
                    'rotate': degree,
-                   'translationX': directives.length_or_unitless,
-                   'translationY': directives.length_or_unitless,
-                   'margin-left': directives.length_or_unitless,
-                   'margin-right': directives.length_or_unitless,
-                   'margin-bottom': directives.length_or_unitless,
-                   'margin-top': directives.length_or_unitless,
+                   # matrix(n,n,n,n,n,n)
+                   # skew(x-angle,y-angle)
                    }
 
     ##############################################
@@ -143,6 +196,16 @@ class Css3ImageDirective(Directive):
             return messages + [reference_node]
         else:
             return messages + [image_node]
+
+####################################################################################################
+
+def format_css_property(name, value):
+    return '{}: {};'.format(name, value)
+
+####################################################################################################
+
+def css3_prefix(style_property):
+    return ' '.join([prefix + style_property for prefix in ('', '-ms-', '-moz-', '-webkit-')])
 
 ####################################################################################################
 
@@ -249,19 +312,28 @@ def visit_Css3Image_html(self, node):
             del atts[att_name]
 
     # css3image: Added some styles
+    for property_name in ('margin-left', 'margin-right', 'margin.bottom', 'margin-top',
+                          'margin',
+                          'border-radius',
+                          ):
+        if property_name in node:
+            style.append(format_css_property(property_name, node[property_name]))
+    for property_name in ('transform-origin',):
+        if property_name in node:
+            style.append(css3_prefix(format_css_property(property_name, node[property_name])))
     transform = []
-    for att_name in 'rotate', 'translationX', 'translationY':
-        if att_name in node:
-            transform.append('{}({})'.format(att_name, node[att_name]))
+    for property_name in ('translate', 'translatex', 'translatey',
+                          'scalex', 'scaley', # 'scale',
+                          'rotate',
+                          ):
+        if property_name in node:
+            value = node[property_name]
+            for axe in 'x', 'y':
+                if property_name.endswith(axe):
+                    property_name = property_name[:-1] + axe.upper()
+            transform.append('{}({})'.format(property_name, value))
     if transform:
-        style.append('transform: ' + ' '.join(transform) + ';')
-    for att_name in ('margin-left', 'margin-right', 'margin.bottom', 'margin-top'):
-        if att_name in node:
-            value = node[att_name]
-            if re.match(r'^[0-9.]+$', value):
-                # Interpret unitless values as pixels.
-                value += 'px'
-            style.append('%s: %s;' % (att_name, value))
+        style.append(css3_prefix('transform: ' + ' '.join(transform) + ';'))
 
     if style:
         atts['style'] = ' '.join(style)
