@@ -39,6 +39,9 @@ To load the plugin, you have to add it in your ``conf.py`` file.
       'sphinxcontrib.css3image',
       ]
 
+Directives
+----------
+
 This plugin adds a new directive ``css3image`` which is equivalent to the original, but with
 additional CSS properties:
 
