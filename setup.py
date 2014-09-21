@@ -2,26 +2,18 @@
 
 from setuptools import setup, find_packages
 
-long_desc = '''
-This package contains the css3image Sphinx extension.
-
-It provides an enhanced ``image`` directive with additional CSS properties for Sphinx Documentation
-Generator.
-'''
-
 requires = ['Sphinx>=0.6']
 
 setup(
     name='sphinxcontrib-css3image',
     version='0.1',
     url='http://bitbucket.org/birkenfeld/sphinx-contrib',
-    # download_url='http://pypi.python.org/pypi/sphinxcontrib-css3image',
-    download_url='http://github.com/FabriceSalvaire/sphinx-css3image',
+    download_url='http://pypi.python.org/pypi/sphinxcontrib-css3image',
     license='LGPL v3',
     author='Fabrice Salvaire',
     author_email='fabrice.salvaire@orange.fr',
     description='Sphinx "css3image" extension',
-    long_description=long_desc,
+    long_description=open('README.rst').read(),
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',

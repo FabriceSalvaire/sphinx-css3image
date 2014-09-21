@@ -5,6 +5,8 @@
 This plugin provides an enhanced ``image`` directive with additional CSS properties for `Sphinx`_
 Documentation Generator.
 
+Written by `Fabrice Salvaire <http://fabrice-salvaire.pagesperso-orange.fr>`_.
+
 Installation
 ------------
 
@@ -17,6 +19,14 @@ To install the plugin, you have to run these commands:
     python setup.py build
     python setup.py install
 
+The PySpice source code is hosted at https://github.com/FabriceSalvaire/sphinx-css3image
+
+To clone the Git repository, run this command in a terminal:
+
+.. code-block:: sh
+
+  git clone git@github.com:FabriceSalvaire/sphinx-css3image
+
 Usage
 -----
 
@@ -28,9 +38,6 @@ To load the plugin, you have to add it in your ``conf.py`` file.
       ...
       'sphinxcontrib.css3image',
       ]
-
-Usage
------
 
 This plugin adds a new directive ``css3image`` which is equivalent to the original, but with
 additional CSS properties:
